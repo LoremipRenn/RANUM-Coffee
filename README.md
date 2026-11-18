@@ -138,4 +138,4 @@ Sesuaikan `MIDTRANS_CLIENT_KEY` dan `NEST_API_URL` / `NEST_PUBLIC_API_URL` di `a
 | Barista | `barista@ranumcoffee.id` | `RanumBarista2026!` |
 | Waiter | `waiter@ranumcoffee.id` | `RanumWaiter2026!` |
 
-> **Keamanan:** Ubah seluruh password default dan `JWT_SECRET` sebelum digunakan di lingkungan production, dan jangan pernah meng-commit file `.env` ke repository.
+> **Keamanan:** Ubah seluruh password default dan `JWT_SECRET` sebelum digunakan di lingkungan production.
