@@ -1,0 +1,38 @@
+# Environment & Secrets (NEVER commit real keys)
+.env
+.env.*
+!.env.example
+apps/api/.env
+apps/web/.env
+
+# Dependencies
+node_modules/
+apps/api/node_modules/
+apps/web/node_modules/
+apps/web/vendor/
+
+# Build Outputs & Caches
+dist/
+apps/api/dist/
+apps/web/public/build/
+apps/web/public/hot
+apps/web/bootstrap/cache/*.php
+!apps/web/bootstrap/cache/.gitignore
+apps/web/storage/*.key
+apps/web/storage/logs/*.log
+apps/web/storage/framework/cache/*
+apps/web/storage/framework/sessions/*
+apps/web/storage/framework/views/*
+
+# Local Databases
+*.sqlite
+*.sqlite3
+apps/web/database/database.sqlite
+
+# Logs & OS / IDE
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

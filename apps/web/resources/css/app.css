@@ -1,0 +1,345 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-bg: #100F0D;
+  --color-surface-1: #171512;
+  --color-surface-2: #201D19;
+  --color-surface-3: #29241E;
+  --color-surface-4: #332B23;
+  --color-border: #393229;
+
+  --color-text-primary: #F4EFE6;
+  --color-text-secondary: #C2B8AA;
+  --color-text-muted: #8D8377;
+
+  --color-accent: #C69B67;
+  --color-accent-hover: #D5AE7D;
+  --color-olive: #92977A;
+
+  --color-success: #78A889;
+  --color-warning: #D7AA63;
+  --color-danger: #CF7770;
+  --color-info: #82A8B7;
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-elev-1: 0 2px 8px rgba(0, 0, 0, 0.18);
+  --shadow-elev-2: 0 6px 18px rgba(0, 0, 0, 0.24);
+  --shadow-elev-3: 0 12px 32px rgba(0, 0, 0, 0.30);
+}
+
+:root {
+  --ease-ranum: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-ranum-fast: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 160ms;
+  --dur-base: 260ms;
+  --dur-slow: 460ms;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1, h2, .font-display {
+    font-family: var(--font-display);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Hero & immediate staggered opening */
+.ranum-enter {
+  animation: ranumFadeUp 560ms var(--ease-ranum) both;
+}
+.ranum-enter-1 { animation: ranumFadeUp 560ms var(--ease-ranum) 60ms both; }
+.ranum-enter-2 { animation: ranumFadeUp 620ms var(--ease-ranum) 140ms both; }
+.ranum-enter-3 { animation: ranumFadeUp 660ms var(--ease-ranum) 220ms both; }
+.ranum-enter-4 { animation: ranumFadeUp 700ms var(--ease-ranum) 300ms both; }
+
+@keyframes ranumFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scroll-triggered reveal (directional, bidirectional open/close) */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 460ms var(--ease-ranum) 0ms,
+    transform 460ms var(--ease-ranum) 0ms;
+}
+
+[data-reveal="left"] {
+  transform: translateX(-20px);
+}
+
+[data-reveal="right"] {
+  transform: translateX(20px);
+}
+
+[data-reveal][data-reveal-state="visible"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 620ms var(--ease-ranum) var(--reveal-delay, 0ms),
+    transform 620ms var(--ease-ranum) var(--reveal-delay, 0ms);
+}
+
+/* Dynamic repeating ambient animations (GPU-composited) */
+.ranum-hero-kenburns {
+  animation: ranumKenBurns 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes ranumKenBurns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+.ranum-float-slow {
+  animation: ranumFloatSlow 6s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes ranumFloatSlow {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-7px);
+  }
+}
+
+.ranum-pulse-dot {
+  animation: ranumPulseDot 2.4s ease-in-out infinite;
+}
+
+@keyframes ranumPulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.35);
+  }
+}
+
+.ranum-marquee {
+  overflow: hidden;
+  user-select: none;
+}
+
+.ranum-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: ranumMarquee 34s linear infinite;
+  will-change: transform;
+}
+
+.ranum-marquee:hover .ranum-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes ranumMarquee {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Interactive tactile buttons */
+.ranum-btn {
+  transition:
+    background-color var(--dur-fast) ease-out,
+    border-color var(--dur-fast) ease-out,
+    color var(--dur-fast) ease-out,
+    transform var(--dur-fast) var(--ease-ranum-fast);
+}
+
+.ranum-btn:active:not(:disabled) {
+  transform: scale(0.975);
+}
+
+/* Product & editorial cards (hover gated for pointer devices) */
+.ranum-card {
+  transition:
+    border-color var(--dur-base) ease-out,
+    transform var(--dur-base) var(--ease-ranum),
+    box-shadow var(--dur-base) ease-out;
+}
+
+.ranum-card-img {
+  transition: transform 520ms var(--ease-ranum);
+}
+
+@media (hover: hover) {
+  .ranum-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-elev-2);
+  }
+  .ranum-card:hover .ranum-card-img {
+    transform: scale(1.035);
+  }
+}
+
+/* Smooth Overlay / Modal / Sheet / Drawer */
+.ranum-overlay {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-base) var(--ease-ranum),
+    visibility 0ms linear var(--dur-base);
+}
+
+.ranum-overlay.is-open {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition:
+    opacity var(--dur-base) var(--ease-ranum),
+    visibility 0ms linear 0ms;
+}
+
+.ranum-modal-panel {
+  transform: translateY(18px) scale(0.98);
+  transition: transform var(--dur-base) var(--ease-ranum);
+}
+
+.ranum-overlay.is-open .ranum-modal-panel {
+  transform: translateY(0) scale(1);
+}
+
+.ranum-drawer-panel {
+  transform: translateX(100%);
+  transition: transform 300ms var(--ease-ranum);
+}
+
+.ranum-overlay.is-open .ranum-drawer-panel {
+  transform: translateX(0);
+}
+
+/* Smooth collapsible staff sidebar */
+@media (min-width: 1024px) {
+  .ranum-staff-sidebar {
+    transition:
+      width 280ms var(--ease-ranum),
+      padding 280ms var(--ease-ranum),
+      opacity 200ms ease-out;
+  }
+  .ranum-staff-sidebar[data-collapsed="true"] {
+    width: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-right-width: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+}
+
+/* Smooth chart bar entrance */
+.ranum-chart-bar {
+  transform-origin: bottom;
+  animation: ranumBarGrow 520ms var(--ease-ranum) both;
+}
+
+@keyframes ranumBarGrow {
+  from {
+    transform: scaleY(0.05);
+    opacity: 0.4;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Floating cart bar & toast */
+.ranum-float-bar {
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity var(--dur-base) var(--ease-ranum),
+    transform var(--dur-base) var(--ease-ranum),
+    visibility 0ms linear var(--dur-base);
+}
+
+.ranum-float-bar.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  visibility: visible;
+  transition:
+    opacity var(--dur-base) var(--ease-ranum),
+    transform var(--dur-base) var(--ease-ranum),
+    visibility 0ms linear 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .ranum-enter,
+  .ranum-enter-1,
+  .ranum-enter-2,
+  .ranum-enter-3,
+  .ranum-enter-4,
+  .ranum-hero-kenburns,
+  .ranum-float-slow,
+  .ranum-pulse-dot,
+  .ranum-marquee-track,
+  [data-reveal] {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

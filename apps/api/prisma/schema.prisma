@@ -1,0 +1,447 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CASHIER
+  BARISTA
+  WAITER
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum QrStatus {
+  ACTIVE
+  DISABLED
+  REVOKED
+}
+
+enum TableSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum ProductBadge {
+  NONE
+  BEST_SELLER
+  NEW
+  RECOMMENDED
+}
+
+enum ProductAvailability {
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+}
+
+enum OrderStatus {
+  AWAITING_PAYMENT
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentPolicy {
+  ONLINE_MIDTRANS
+  PAY_AT_CASHIER
+}
+
+enum OrderItemOptionType {
+  VARIANT
+  ADDON
+}
+
+enum PaymentProvider {
+  MIDTRANS_SNAP
+  CASHIER_MANUAL
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum StaffRequestType {
+  ASSISTANCE
+  REQUEST_BILL
+}
+
+enum StaffRequestStatus {
+  OPEN
+  RESOLVED
+}
+
+model Branch {
+  id                    String   @id @default(cuid())
+  name                  String
+  slug                  String   @unique
+  address               String
+  phone                 String?
+  openHours             String   @default("08:00 - 22:00 WIB")
+  isOpen                Boolean  @default(true)
+  taxRatePercent        Float    @default(10)
+  serviceChargePercent  Float    @default(5)
+  allowPayAtCashier     Boolean  @default(true)
+  requireCashierConfirm Boolean  @default(false)
+  currency              String   @default("IDR")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  users         User[]
+  tables        DiningTable[]
+  tableSessions TableSession[]
+  categories    Category[]
+  products      Product[]
+  orders        Order[]
+  staffRequests StaffRequest[]
+  auditLogs     AuditLog[]
+
+  @@map("branches")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  branchId     String
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(CASHIER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  branch                Branch               @relation(fields: [branchId], references: [id])
+  closedSessions        TableSession[]       @relation("SessionClosedBy")
+  confirmedOrders       Order[]              @relation("OrderConfirmedBy")
+  cancelledOrders       Order[]              @relation("OrderCancelledBy")
+  orderStatusChanges    OrderStatusHistory[]
+  receivedCashPayments  Payment[]            @relation("PaymentReceivedBy")
+  resolvedStaffRequests StaffRequest[]       @relation("RequestResolvedBy")
+  auditLogs             AuditLog[]
+
+  @@index([branchId, role])
+  @@map("users")
+}
+
+model DiningTable {
+  id        String      @id @default(cuid())
+  branchId  String
+  code      String
+  name      String
+  area      String      @default("Indoor")
+  capacity  Int         @default(4)
+  status    TableStatus @default(AVAILABLE)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  branch        Branch         @relation(fields: [branchId], references: [id])
+  qrCodes       TableQrCode[]
+  tableSessions TableSession[]
+  orders        Order[]
+  staffRequests StaffRequest[]
+
+  @@unique([branchId, code])
+  @@map("dining_tables")
+}
+
+model TableQrCode {
+  id            String    @id @default(cuid())
+  tableId       String
+  token         String    @unique
+  status        QrStatus  @default(ACTIVE)
+  createdAt     DateTime  @default(now())
+  regeneratedAt DateTime?
+
+  table DiningTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@index([tableId, status])
+  @@map("table_qr_codes")
+}
+
+model TableSession {
+  id             String             @id @default(cuid())
+  branchId       String
+  tableId        String
+  status         TableSessionStatus @default(OPEN)
+  openedAt       DateTime           @default(now())
+  closedAt       DateTime?
+  closedById     String?
+  overrideReason String?
+
+  branch        Branch         @relation(fields: [branchId], references: [id])
+  table         DiningTable    @relation(fields: [tableId], references: [id])
+  closedBy      User?          @relation("SessionClosedBy", fields: [closedById], references: [id])
+  orders        Order[]
+  staffRequests StaffRequest[]
+
+  @@index([tableId, status])
+  @@map("table_sessions")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  branchId  String
+  name      String
+  slug      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  products Product[]
+
+  @@unique([branchId, slug])
+  @@map("categories")
+}
+
+model Product {
+  id           String              @id @default(cuid())
+  branchId     String
+  categoryId   String
+  name         String
+  slug         String
+  description  String              @db.Text
+  imageUrl     String?
+  basePrice    Int
+  badge        ProductBadge        @default(NONE)
+  availability ProductAvailability @default(ACTIVE)
+  isFeatured   Boolean             @default(false)
+  sortOrder    Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  branch       Branch               @relation(fields: [branchId], references: [id])
+  category     Category             @relation(fields: [categoryId], references: [id])
+  optionGroups ProductOptionGroup[]
+  addons       ProductAddon[]
+  orderItems   OrderItem[]
+
+  @@unique([branchId, slug])
+  @@index([branchId, categoryId, availability])
+  @@map("products")
+}
+
+model ProductOptionGroup {
+  id            String  @id @default(cuid())
+  productId     String
+  name          String
+  isRequired    Boolean @default(false)
+  allowMultiple Boolean @default(false)
+  sortOrder     Int     @default(0)
+
+  product Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values  ProductOptionValue[]
+
+  @@map("product_options")
+}
+
+model ProductOptionValue {
+  id              String  @id @default(cuid())
+  optionGroupId   String
+  name            String
+  additionalPrice Int     @default(0)
+  isDefault       Boolean @default(false)
+  sortOrder       Int     @default(0)
+
+  optionGroup ProductOptionGroup @relation(fields: [optionGroupId], references: [id], onDelete: Cascade)
+
+  @@map("product_option_values")
+}
+
+model ProductAddon {
+  id        String  @id @default(cuid())
+  productId String
+  name      String
+  price     Int     @default(0)
+  isActive  Boolean @default(true)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_addons")
+}
+
+model Order {
+  id                  String        @id @default(cuid())
+  branchId            String
+  tableSessionId      String
+  tableId             String
+  orderNumber         String        @unique
+  accessToken         String        @unique
+  customerName        String?
+  notes               String?       @db.Text
+  status              OrderStatus   @default(AWAITING_PAYMENT)
+  paymentPolicy       PaymentPolicy @default(ONLINE_MIDTRANS)
+  subtotal            Int
+  taxAmount           Int
+  serviceChargeAmount Int
+  totalAmount         Int
+  idempotencyKey      String?       @unique
+  cancelReason        String?
+  confirmedById       String?
+  cancelledById       String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  branch        Branch               @relation(fields: [branchId], references: [id])
+  tableSession  TableSession         @relation(fields: [tableSessionId], references: [id])
+  table         DiningTable          @relation(fields: [tableId], references: [id])
+  confirmedBy   User?                @relation("OrderConfirmedBy", fields: [confirmedById], references: [id])
+  cancelledBy   User?                @relation("OrderCancelledBy", fields: [cancelledById], references: [id])
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+  payments      Payment[]
+
+  @@index([branchId, status, createdAt])
+  @@index([tableSessionId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String  @id @default(cuid())
+  orderId       String
+  productId     String?
+  productName   String
+  unitBasePrice Int
+  unitFinalPrice Int
+  quantity      Int
+  lineTotal     Int
+  notes         String?
+
+  order   Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+  options OrderItemOption[]
+
+  @@map("order_items")
+}
+
+model OrderItemOption {
+  id              String              @id @default(cuid())
+  orderItemId     String
+  type            OrderItemOptionType
+  groupName       String
+  optionName      String
+  additionalPrice Int
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@map("order_item_options")
+}
+
+model OrderStatusHistory {
+  id          String       @id @default(cuid())
+  orderId     String
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  changedById String?
+  note        String?
+  createdAt   DateTime     @default(now())
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy User? @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_histories")
+}
+
+model Payment {
+  id                    String          @id @default(cuid())
+  orderId               String
+  provider              PaymentProvider
+  method                String?
+  amount                Int
+  status                PaymentStatus   @default(CREATED)
+  midtransOrderId       String?         @unique
+  midtransTransactionId String?
+  snapToken             String?
+  snapRedirectUrl       String?
+  fraudStatus           String?
+  paidAt                DateTime?
+  expiredAt             DateTime?
+  receivedById          String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  order         Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  receivedBy    User?                 @relation("PaymentReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
+  webhookEvents PaymentWebhookEvent[]
+
+  @@index([orderId, status])
+  @@map("payments")
+}
+
+model PaymentWebhookEvent {
+  id                String   @id @default(cuid())
+  paymentId         String?
+  midtransOrderId   String
+  transactionStatus String
+  statusCode        String
+  grossAmount       String
+  signatureValid    Boolean
+  idempotencyKey    String   @unique
+  payloadJson       String   @db.Text
+  processedAt       DateTime @default(now())
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([midtransOrderId])
+  @@map("payment_webhook_events")
+}
+
+model StaffRequest {
+  id             String             @id @default(cuid())
+  branchId       String
+  tableSessionId String
+  tableId        String
+  type           StaffRequestType
+  note           String?
+  status         StaffRequestStatus @default(OPEN)
+  resolvedById   String?
+  createdAt      DateTime           @default(now())
+  resolvedAt     DateTime?
+
+  branch       Branch       @relation(fields: [branchId], references: [id])
+  tableSession TableSession @relation(fields: [tableSessionId], references: [id])
+  table        DiningTable  @relation(fields: [tableId], references: [id])
+  resolvedBy   User?        @relation("RequestResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([branchId, status])
+  @@map("staff_requests")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  branchId   String
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  branch Branch @relation(fields: [branchId], references: [id])
+  actor  User?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([branchId, createdAt])
+  @@map("audit_logs")
+}
